@@ -6,34 +6,7 @@
 Сайт собирается скриптом `build.py` (Python 3.10+) из файла `data/events.json`.
 Выходные файлы — обычный HTML/CSS/JS, сервер не нужен.
 
-## Публикация на GitHub Pages
 
-1. Создайте репозиторий на GitHub и отправьте в него проект:
-   ```bash
-   git init
-   git add .
-   git commit -m "Афиша концертов"
-   git branch -M main
-   git remote add origin https://github.com/<логин>/<репозиторий>.git
-   git push -u origin main
-   ```
-2. В репозитории откройте **Settings → Pages** и в поле **Source** выберите **GitHub Actions**.
-3. Откройте вкладку **Actions** и дождитесь зелёной галочки у **Deploy to GitHub Pages**.
-   Сайт будет по адресу `https://<логин>.github.io/<репозиторий>/`.
-
-Адрес и путь `/<репозиторий>/` скрипт берёт из GitHub сам, ничего настраивать не нужно.
-Сборка запускается при каждом push, вручную и каждый день в 03:00 UTC: прошедшие концерты
-автоматически пропадают из афиши.
-
-## Локальный запуск
-
-```bash
-pip install -r requirements.txt     # Pillow нужен только для иконок и og-картинки
-python build.py                     # результат в папке dist/
-python -m http.server -d dist 8000  # http://localhost:8000
-```
-
-Для проверки с путём репозитория: `SITE_URL=https://user.github.io/repo python build.py`.
 
 ## Как добавить или обновить концерты
 
