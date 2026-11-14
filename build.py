@@ -42,7 +42,7 @@ EV=[]
 for x in DATA["events"]:
     d=dt.date.fromisoformat(x["date"])
     if d<BASE: continue
-    EV.append(dict(artist=x["artist"],tour=x.get("tour",""),g=x["genre"],c=x["city"],v=x["venue"],vt=x["vt"],d=d,tm=x.get("time"),pr=x.get("price"),age=x.get("age",""),url=x["url"],slug=tr(f"{x['artist']}-{x['city']}-{x['date']}")))
+    EV.append(dict(artist=x["artist"],tour=x.get("tour",""),g=x["genre"],c=x["city"],v=x["venue"],vt=x["vt"],d=d,tm=x.get("time"),pr=x.get("price"),age=x.get("age",""),url=x["url"],image=x.get("image",""),slug=tr(f"{x['artist']}-{x['city']}-{x['date']}")))
 EV.sort(key=lambda e:(e["d"],e["tm"] or ""))
 if not EV: raise SystemExit("В data/events.json нет предстоящих концертов: добавьте новые даты.")
 CN={k:v for k,v in CN.items() if any(e["c"]==k for e in EV)}
@@ -66,13 +66,18 @@ def poster(e):
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{a}"/><stop offset=".6" stop-color="{b}"/><stop offset="1" stop-color="#0b0830"/></linearGradient></defs><rect width="400" height="500" fill="url(#g)"/>{sh}{bars}<text x="24" y="{y0}" {f} font-weight="900" font-size="40">{ts}</text><text x="24" y="450" {f} font-size="19" opacity=".9">{H(e["tour"])}</text><text x="24" y="478" {f} font-size="17" font-weight="700">{fd(e["d"])}, {CN[e["c"]]}</text></svg>'
 LOGO='<svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="10" fill="#ff4d6d"/><path d="M9 22v-8M14 26V10M19 20v-4M24 24V12M29 21v-6" stroke="#120e38" stroke-width="3" stroke-linecap="round" fill="none"/></svg>'
 
+IMGDIR=os.path.join(HERE,"images")
+def pimg(e):
+    """Своя картинка из папки images/ (поле image в events.json), иначе сгенерированный постер."""
+    if e["image"] and os.path.isfile(os.path.join(IMGDIR,e["image"])): return "/img/c/"+e["image"]
+    return f'/img/p/{e["slug"]}.svg'
 def ptxt(e): return "от "+rub(e["pr"]) if e["pr"] else "цена у продавца"
 def card(e):
     u=f"/koncert/{e['slug']}/"; t=ttl(e)
     k=H(f"{t} {e['v']} {CN[e['c']]} {GN[e['g']]}".lower()); dp=e["pr"] if e["pr"] else 999999
     sub=(H(e["tour"])+"<br>" if e["tour"] else "")+H(e["v"])+(", "+e["tm"] if e["tm"] else "")
     return (f'<article class="card" data-t="{k}" data-c="{e["c"]}" data-g="{e["g"]}" data-v="{e["vt"]}" data-p="{dp}" data-d="{e["d"].isoformat()}">'
-    f'<a class="po" href="{u}" tabindex="-1"><img src="/img/p/{e["slug"]}.svg" width="400" height="500" alt="Афиша: {H(t)}" loading="lazy" decoding="async"><span class="chip">{fdw(e["d"])}</span></a>'
+    f'<a class="po" href="{u}" tabindex="-1"><img src="{pimg(e)}" width="400" height="500" alt="Афиша: {H(t)}" loading="lazy" decoding="async"><span class="chip">{fdw(e["d"])}</span></a>'
     f'<div class="cb"><div class="tg"><span>{GN[e["g"]]}</span><i>{CN[e["c"]]}</i></div><h3><a href="{u}">{H(e["artist"])}</a></h3><p class="mu sm">{sub}</p>'
     f'<div class="row"><b class="pr">{ptxt(e)}</b></div><a class="btn" href="{u}" data-goal="to_event">Подробнее</a></div></article>')
 def nav():
@@ -88,8 +93,6 @@ def footer():
 <div><h3>Проект</h3><ul><li><a href="/bilety/">Как купить билет</a></li><li><a href="/pomoshch/">Помощь</a></li><li><a href="/o-nas/">О проекте</a></li><li><a href="/politika-konfidencialnosti/">Конфиденциальность</a></li></ul></div></div>
 <div class="bot"><span>© {BASE.year} {BRAND}. Данные о концертах взяты с Афиша.ру, сверены {fd(CHECKED)} {CHECKED.year}. Названия артистов и площадок принадлежат их владельцам.</span></div></div></footer>'''
 
-
-V={}
 
 V={}
 def layout(path,title,desc,body,bc=None,kw="",ld=None,noindex=False,sb="",pri=.5,cf="weekly",og="/img/og.png",lastmod=None):
@@ -129,7 +132,7 @@ def ROCK():
     return f"<p>Рок-концерты в афише: {names}.</p><p>Формат разный: от клубных вечеров до больших арен. Дату, площадку и минимальную цену смотрите на странице концерта, а купить билет можно у продавца по ссылке.</p>"
 def build_pages():
     nxt=EV[:8]; top=EV[:3]
-    fan="".join(f'<a class="tk" href="/koncert/{e["slug"]}/"><img src="/img/p/{e["slug"]}.svg" width="400" height="500" alt="Афиша: {H(ttl(e))}" {"fetchpriority=\"high\"" if i==1 else ""}><b>{H(e["artist"])}</b><small>{fdw(e["d"])}, {CN[e["c"]]}</small></a>' for i,e in enumerate(top))
+    fan="".join(f'<a class="tk" href="/koncert/{e["slug"]}/"><img src="{pimg(e)}" width="400" height="500" alt="Афиша: {H(ttl(e))}" {"fetchpriority=\"high\"" if i==1 else ""}><b>{H(e["artist"])}</b><small>{fdw(e["d"])}, {CN[e["c"]]}</small></a>' for i,e in enumerate(top))
     first=H(EV[0]["artist"])
     hero=f'''<section class="hero"><div class="w"><div><h1>Афиша концертов: ближайшие выступления в&nbsp;{len(CN)} городах</h1><p class="lead">Даты, площадки и цены из открытых афиш. Билеты покупаются у официальных продавцов.</p>
 <form class="sf" action="/afisha/" role="search"><label><span>Артист или площадка</span><input name="q" placeholder="Например, {first}" autocomplete="off"></label><label><span>Город</span><select name="city"><option value="">Все города</option>{"".join(f'<option value="{s}">{CN[s]}</option>' for s in CN)}</select></label><label><span>Жанр</span><select name="genre"><option value="">Любой</option>{"".join(f'<option value="{g}">{GN[g]}</option>' for g in GN)}</select></label><button class="btn" type="submit" data-goal="hero_search">Найти</button></form></div><div class="fan">{fan}</div></div></section>'''
@@ -168,7 +171,7 @@ def event_page(e):
     shr=lambda n,h:f'<a class="btn gh sm" href="{h}" target="_blank" rel="nofollow noopener">{n}</a>'
     q=SITE+u; h1=H(e["artist"])+(f': {H(e["tour"])}' if e["tour"] else "")
     buy=f'<a class="btn" style="width:100%;text-align:center" href="{H(e["url"])}" target="_blank" rel="nofollow noopener" data-goal="buy_click">Смотреть билеты на Афише</a>'
-    body=f'''<div class="w"><div class="ev"><div class="po"><img src="/img/p/{e["slug"]}.svg" width="400" height="500" alt="Афиша: {H(t)}" fetchpriority="high"></div><div><div class="tg mu"><span>{GN[g]}</span><i>{CN[e["c"]]}</i></div><h1 style="margin-top:8px;font-size:clamp(2rem,4.5vw,3.4rem)">{h1}</h1>
+    body=f'''<div class="w"><div class="ev"><div class="po"><img src="{pimg(e)}" width="400" height="500" alt="Афиша: {H(t)}" fetchpriority="high"></div><div><div class="tg mu"><span>{GN[g]}</span><i>{CN[e["c"]]}</i></div><h1 style="margin-top:8px;font-size:clamp(2rem,4.5vw,3.4rem)">{h1}</h1>
 <dl class="meta"><dt>Дата</dt><dd>{when}</dd><dt>Площадка</dt><dd>{H(e["v"])}, {CN[e["c"]]}</dd>{f'<dt>Возраст</dt><dd>{H(e["age"])}</dd>' if e["age"] else ""}<dt>Цена</dt><dd>{price}</dd></dl>
 <div class="act">{shr("ВКонтакте","https://vk.com/share.php?url="+q)}{shr("Telegram","https://t.me/share/url?url="+q)}</div>
 <div class="tw" id="buy"><h2 style="font-size:1.4rem;margin-bottom:12px">Билеты</h2><p class="mi" style="margin-bottom:14px">Минимальная цена по данным афиши на {fd(CHECKED)}: <b>{price}</b>.</p>{buy}<p class="sm mi" style="margin-top:12px">Билеты продаёт Афиша.ру. На этом сайте оплата не принимается, а условия возврата указаны у продавца.</p></div></div></div></div>'''
@@ -178,7 +181,7 @@ def event_page(e):
     off={"@type":"Offer","url":e["url"],"priceCurrency":"RUB"}
     if e["pr"]: off["price"]=e["pr"]
     start=f'{e["d"].isoformat()}T{e["tm"]}:00{tz}' if e["tm"] else e["d"].isoformat()
-    ld=[{"@context":"https://schema.org","@type":"Event","name":t,"startDate":start,"eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","location":{"@type":"Place","name":e["v"],"address":{"@type":"PostalAddress","addressLocality":CN[e["c"]],"addressCountry":"RU"}},"image":[SITE+f"/img/p/{e['slug']}.svg"],"description":f"{e['artist']}: концерт {CI[e['c']]}, {fd(e['d'])}, {e['v']}.","performer":{"@type":"PerformingGroup","name":e["artist"]},"offers":off}]
+    ld=[{"@context":"https://schema.org","@type":"Event","name":t,"startDate":start,"eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","location":{"@type":"Place","name":e["v"],"address":{"@type":"PostalAddress","addressLocality":CN[e["c"]],"addressCountry":"RU"}},"image":[SITE+pimg(e)],"description":f"{e['artist']}: концерт {CI[e['c']]}, {fd(e['d'])}, {e['v']}.","performer":{"@type":"PerformingGroup","name":e["artist"]},"offers":off}]
     layout(u,(f"{e['artist']}"+(f": {e['tour']}" if e["tour"] else "")+f" {CI[e['c']]}, {fd(e['d'])} — билеты | {BRAND}")[:110],f"Концерт {e['artist']} {CI[e['c']]}, {fd(e['d'])}, {e['v']}. Цена {price}. Ссылка на продавца билетов.",body,[("Афиша","/afisha/"),(GN[g],f"/afisha/{g}/"),(e["artist"],None)],ld=ld,sb=sbar,pri=.6)
 
 
@@ -251,6 +254,9 @@ def main():
     V["css"]=hashlib.md5(css.encode()).hexdigest()[:8]; V["js"]=hashlib.md5(js.encode()).hexdigest()[:8]
     w("css/style.css",css); w("js/app.js",js); w("favicon.svg",LOGO.replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" '))
     for e in EV: w(f"img/p/{e['slug']}.svg",poster(e))
+    for e in EV:
+        if e["image"] and not os.path.isfile(os.path.join(IMGDIR,e["image"])): print("Нет файла images/"+e["image"]+" (концерт: "+e["artist"]+"), будет постер")
+    if os.path.isdir(IMGDIR): shutil.copytree(IMGDIR,os.path.join(OUT,"img","c"),dirs_exist_ok=True)
     assets(); build_pages()
     sm='<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+"".join(f'<url><loc>{SITE}{p}</loc><lastmod>{m["lm"].isoformat()}</lastmod><changefreq>{m["cf"]}</changefreq><priority>{m["pri"]}</priority></url>' for p,m in PAGES.items() if not m["noindex"])+'</urlset>'
     w("sitemap.xml",sm)
@@ -282,4 +288,3 @@ def validate():
     print(f"Страниц: {n}, событий: {len(EV)}, замечаний: {len(set(bad))}"); [print(" -",b) for b in sorted(set(bad))[:30]]
 
 if __name__=="__main__": main()
-
