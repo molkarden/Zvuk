@@ -50,6 +50,27 @@ GN={k:v for k,v in GN.items() if any(e["g"]==k for e in EV)}
 VN={k:v for k,v in VN.items() if any(e["vt"]==k for e in EV)}
 ttl=lambda e:f"{e['artist']} — {e['tour']}" if e["tour"] else e["artist"]
 ARTISTS=sorted({e["artist"] for e in EV})
+# Прямые ссылки на фотографии артистов. Изображения загружаются с внешних CDN,
+# поэтому локальная папка images/ для карточек артистов не требуется.
+ARTIST_IMAGES={
+    "Pharaoh": "https://s3.afisha.ru/mediastorage/7d/d3/7e02fc486bb1469b8149ba96d37d.jpg",
+    "Ева Власова": "https://s4.afisha.ru/mediastorage/fe/1b/fc5b8afc0265439aa44ec4171bfe.jpg",
+    "Ислам Итляшев": "https://s1.afisha.ru/mediastorage/53/71/29a275851bbc456ab505e4dc7153.jpeg",
+    "Градусы": "https://ponominalu.ru/media/library/original/1e-97-1e97965b884a5fd3b9c8f404e5313ba6.jpg",
+    "Green Apelsin": "https://s.afisha.ru/mediastorage/c5/dc/046928b4e1744527bbb78daedcc5.jpg",
+    "Евгений Григорьев": "https://s.afisha.ru/mediastorage/26/95/011aa6e6e5c8450c9b9e8ffc9526.jpeg",
+    "Хаски": "https://s5.afisha.ru/mediastorage/d6/7a/9849e7261f664615bb86e06f7ad6.jpg",
+    "Cupsize": "https://s5.afisha.ru/mediastorage/a5/56/d042280b00b94b298f10754e56a5.jpg",
+    "Костя Кулясов и АнимациЯ": "https://s1.afisha.ru/mediastorage/e2/d3/e4c6eb2293ba4719a9b16bced3e2.jpg",
+    "Вивальди-оркестр": "https://filarmonika.ru/public/user_upload/files/gos/prochee/2ihxu0tkybs.jpg",
+    "Boulevard Depo": "https://s5.afisha.ru/mediastorage/65/ff/d323c19b06504b30a1980e87ff65.jpg",
+    "Комиссар": "https://s.afisha.ru/mediastorage/51/a4/d083b306fb9d4d6ea8ea5d44a451.jpg",
+    "Akmal'": "https://ponominalu.ru/media/library/original/32-d3-32d3ae9c9abb347228b44c9fcbe9a6aa.jpeg",
+    "Мелодии новогодней ночи": "https://cdnlv.redkassa.ru/live/sitenew/picture/00815672-636a-4b62-aff8-bfe07a70f4d0",
+    "Shaman": "https://s.afisha.ru/mediastorage/c4/1c/a786b2d099d2417aa2f051fd1cc4.jpg",
+    "Полина Гагарина": "https://s3.afisha.ru/mediastorage/2d/4c/cec920d11d9b46fdac4bbf5b4c2d.jpg",
+    "Ленинград": "https://upload.wikimedia.org/wikipedia/commons/e/e2/%D0%9B%D0%B5%D0%BD%D0%B8%D0%BD%D0%B3%D1%80%D0%B0%D0%B4_%D0%B2_%D0%9A%D0%B0%D0%BB%D0%B8%D0%BD%D0%B8%D0%BD%D0%B3%D1%80%D0%B0%D0%B4%D0%B5_2019_22.jpg",
+}
 PAGES={}
 
 
@@ -199,8 +220,14 @@ def static_pages():
     # артисты
     by={a:[e for e in EV if e["artist"]==a] for a in ARTISTS}
     def acard(a):
-        es=by[a]; g=es[0]["g"]
-        return f'<div><div class="av" style="background:{GC[g][0]}">{H(a[0])}</div><h3>{H(a)}</h3><p class="mu sm" style="margin-bottom:10px">{GN[g]}</p><ul class="ch" style="margin-bottom:14px">'+"".join(f'<li><a href="/koncert/{e["slug"]}/">{fd(e["d"])}, {CN[e["c"]]}</a></li>' for e in es)+'</ul></div>'
+        es=by[a]; g=es[0]["g"]; photo=ARTIST_IMAGES.get(a,"")
+        credit=('<p class="mu sm" style="font-size:10px;margin:-8px 0 12px">Фото: Westpress Kaliningrad archive · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a></p>' if a=="Ленинград" else '')
+        # Буква остаётся под изображением как fallback, если внешний CDN недоступен.
+        avatar=(f'<div style="position:relative;width:100%;aspect-ratio:4/3;overflow:hidden;border-radius:16px;margin-bottom:14px;background:linear-gradient(145deg,{GC[g][0]},{GC[g][1]});">'
+                f'<span style="position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:48px;font-weight:800">{H(a[0])}</span>'
+                +(f'<img src="{H(photo)}" alt="Фото: {H(a)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">' if photo else '')
+                +'</div>')
+        return f'<div>{avatar}{credit}<h3>{H(a)}</h3><p class="mu sm" style="margin-bottom:10px">{GN[g]}</p><ul class="ch" style="margin-bottom:14px">'+"".join(f'<li><a href="/koncert/{e["slug"]}/">{fd(e["d"])}, {CN[e["c"]]}</a></li>' for e in es)+'</ul></div>'
     tours=[a for a in ARTISTS if len(by[a])>1]
     layout("/artisty/",f"Артисты в афише концертов | {BRAND}","Исполнители, у которых есть ближайшие концерты: даты, города и ссылки на страницы концертов.",
     sec('<h1>Артисты в афише</h1><p class="lead">Исполнители, у которых есть ближайшие концерты. Выберите дату, чтобы открыть страницу концерта.</p>')+sec('<div class="team">'+"".join(acard(a) for a in ARTISTS)+'</div>',"",'<h2 id="artists">Все артисты</h2>')+(sec('<div class="team">'+"".join(acard(a) for a in tours)+'</div>',"band",'<h2 id="tours">Несколько дат</h2>') if tours else ""),[("Артисты",None)],pri=.5)
